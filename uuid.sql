@@ -11,33 +11,35 @@ DELIMITER $$
 
 DROP FUNCTION IF EXISTS IS_UUID$$
 
-CREATE FUNCTION IF NOT EXISTS IS_UUID (uuid VARCHAR(128)) RETURNS SMALLINT NO SQL DETERMINISTIC
+CREATE FUNCTION IF NOT EXISTS IS_UUID (uuid VARCHAR(255)) RETURNS SMALLINT NO SQL DETERMINISTIC
 BEGIN
 	DECLARE _result SMALLINT;
+
+	DECLARE regexp1 VARCHAR(255);
+	DECLARE regexp2 VARCHAR(255);
+	DECLARE regexp3 VARCHAR(255);
+
+	SET _result = 0;
+
+	SET regexp1 = '^\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}$';
+	SET regexp2 = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+	SET regexp3 = '^[0-9a-fA-F]{8}[0-9a-fA-F]{4}[0-9a-fA-F]{4}[0-9a-fA-F]{4}[0-9a-fA-F]{12}$';
 
 	IF uuid IS NULL THEN
 		SET _result = NULL;
 	ELSE
-		IF CHAR_LENGTH(uuid) = 38 THEN
-			IF SUBSTR(uuid, 1, 1) = '{' AND SUBSTR(uuid, 38, 1) = '}' THEN
-				SET uuid = SUBSTR(uuid, 2, 36);
-			END IF;
+		IF uuid REGEXP regexp1 THEN
+			SET uuid = REPLACE(REPLACE(uuid, '{', ''), '}', '');
 		END IF;
 	   
-		IF CHAR_LENGTH(uuid) = 36 THEN
-			IF SUBSTR(uuid, 9, 1) = '-' AND SUBSTR(uuid, 14, 1) = '-' AND SUBSTR(uuid, 19, 1) = '-' AND SUBSTR(uuid, 24, 1) = '-' THEN
-				SET uuid = REPLACE(uuid,'-','');
-			END IF;
+		IF uuid REGEXP regexp2 THEN
+			SET uuid = REPLACE(uuid, '-', '');
 		END IF;
 
-		IF CHAR_LENGTH(uuid) = 32 THEN
-			IF UNHEX(uuid) IS NULL THEN
-				SET _result = 0;
-			ELSE
+		IF uuid REGEXP regexp3 THEN
+			IF UNHEX(uuid) IS NOT NULL THEN
 				SET _result = 1;
 			END IF;
-		ELSE
-			SET _result = 0;
 		END IF;
 	END IF;
 
